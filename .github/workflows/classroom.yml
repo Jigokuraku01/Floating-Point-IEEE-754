@@ -1,0 +1,36 @@
+name: Floating point Autotests
+run-name: Testing ${{ github.repository }} by @${{ github.actor }}
+
+on:
+  create:
+  repository_dispatch: 
+  workflow_dispatch: 
+    inputs:
+      toward_0_zero:
+        description: "Округление к 0"
+        default: true
+        type: boolean
+      toward_1_nearest_even:
+        description: "Округление к ближайшему чётному"
+        default: false
+        type: boolean
+      toward_2_pinf:
+        description: "Округление к +inf"
+        default: false
+        type: boolean
+      toward_3_ninf:
+        description: "Округление к -inf"
+        default: false
+        type: boolean
+    
+jobs:
+  run-tests:
+    with:
+      student_url: ${{ github.repository }}
+      student_ref: ${{ github.sha }}
+      toward_0_zero:         ${{ inputs.toward_0_zero || true }}
+      toward_1_nearest_even: ${{ inputs.toward_1_nearest_even || false }}
+      toward_2_pinf:         ${{ inputs.toward_2_pinf || false }}
+      toward_3_ninf:         ${{ inputs.toward_3_ninf || false }}
+    uses: skkv-mathcs/private-tools-25/.github/workflows/floating-point.yml@main
+    secrets: inherit
