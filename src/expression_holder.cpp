@@ -2,7 +2,6 @@
 
 #include "i_possible_float_numbers.hpp"
 #include "input_query.hpp"
-#include "iostream"
 #include "my_exception.hpp"
 #include <cstdint>
 #include <cstdlib>
@@ -79,7 +78,7 @@ ExpressionHolder::format_to_output(const PossibleFloat& inp_float) {
         }
         return ans;
     }
-    if (inp_float.check_if_nan()) {
+    if (inp_float.check_if_nan().first) {
         ans.first = "nan";
         return ans;
     }

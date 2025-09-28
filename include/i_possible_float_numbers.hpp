@@ -63,7 +63,7 @@ class PossibleFloat {
     void set_number(std::uint32_t inp_number);
 
     [[nodiscard]]
-    bool check_if_nan() const;
+    std::pair<bool, PossibleFloat> check_if_nan() const;
     [[nodiscard]]
     bool check_if_inf() const;
 

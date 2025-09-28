@@ -4,7 +4,6 @@
 #include "my_exception.hpp"
 #include <cstdint>
 #include <cstdlib>
-#include <format>
 #include <string>
 #include <utility>
 
@@ -162,14 +161,13 @@ std::pair<bool, PossibleFloat>
 PossibleFloat::check_if_nans(const PossibleFloat& first_float,
                              const PossibleFloat& second_float) {
     PossibleFloat ans;
-    if (first_float.check_if_nan() && second_float.check_if_nan()) {
-        ans = first_float;
+    std::pair<bool, PossibleFloat> first_pos_nan = first_float.check_if_nan();
+    std::pair<bool, PossibleFloat> sec_pos_nan = second_float.check_if_nan();
+    if (first_pos_nan.first) {
+        ans = first_pos_nan.second;
     }
-    if (first_float.check_if_nan()) {
-        ans = first_float;
-    }
-    if (second_float.check_if_nan()) {
-        ans = second_float;
+    else if (sec_pos_nan.first) {
+        ans = sec_pos_nan.second;
     }
     if (ans.get_mant_cnt() != 0) {
         if ((ans.get_mant() >> (ans.get_mant_cnt() - 1)) == 0) {
@@ -190,18 +188,18 @@ bool PossibleFloat::check_if_inf() const {
            get_mant() == 0;
 }
 
-bool PossibleFloat::check_if_nan() const {
+std::pair<bool, PossibleFloat> PossibleFloat::check_if_nan() const {
     if (get_exp() != get_all_ones_at_inp_bit_cnt(get_exp_cnt())) {
-        return false;
+        return {false, *this};
     }
     if (get_mant() == 0) {
-        return false;
+        return {false, *this};
     }
+    PossibleFloat new_float = *this;
     if ((get_mant() & (1 << get_mant_cnt())) == 0) {
-        throw MyException(1,
-                          "Signal nan found" + std::format("{:X}", get_numb()));
+        new_float.set_mant(new_float.get_mant() + (1 << (get_mant_cnt() - 1)));
     }
-    return true;
+    return {true, new_float};
 }
 
 NormalFloatNumerHandler::NormalFloatNumerHandler(std::int32_t norm_exp,
