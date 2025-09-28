@@ -12,6 +12,6 @@ class MyException {
     std::string get_error() const;
 
   private:
-    int32_t _code;
-    std::string _error;
+    int32_t m_code;
+    std::string m_error;
 };

@@ -32,18 +32,14 @@ class InputQuery {
     [[nodiscard]]
     PossibleFloat get_third_number() const noexcept;
     [[nodiscard]]
-    std::int64_t get_cnt_for_integer() const noexcept;
-    [[nodiscard]]
-    std::int64_t get_cnt_for_fractional() const noexcept;
-    [[nodiscard]]
     PossibleOperations get_cur_operation() const noexcept;
     [[nodiscard]]
     PossibleRounding get_cur_rounding() const noexcept;
 
   private:
-    const PossibleFloat _first_number;
-    const PossibleFloat _second_number;
-    const PossibleFloat _third_number;
-    PossibleRounding _cur_rounding;
-    PossibleOperations _cur_operation;
+    const PossibleFloat m_first_number;
+    const PossibleFloat m_second_number;
+    const PossibleFloat m_third_number;
+    PossibleRounding m_cur_rounding;
+    PossibleOperations m_cur_operation;
 };
