@@ -11,21 +11,29 @@ PossibleFloat ExpressionHolder::divide(const PossibleFloat first_float,
         return checked_info.second;
     }
     NormalFloatNumerHandler normal_first_float = first_float.get_normal_form();
-    NormalFloatNumerHandler normal_second_float = first_float.get_normal_form();
+    NormalFloatNumerHandler normal_second_float =
+        second_float.get_normal_form();
     PossibleFloat ans(first_float.get_exp_cnt(), first_float.get_mant_cnt());
     ans.set_bit_sign(normal_first_float.get_sign() ^
                      normal_second_float.get_sign());
     std::uint64_t big_first_mant = normal_first_float.get_norm_mant();
-    if (first_float.get_exp() != 0) {
-        big_first_mant += (1 << first_float.get_mant_cnt());
-    }
+
+    big_first_mant += (1 << first_float.get_mant_cnt());
+
     std::uint64_t big_second_mant = normal_second_float.get_norm_mant();
-    if (second_float.get_exp() != 0) {
-        big_second_mant += (1 << second_float.get_mant_cnt());
-    }
+
+    big_second_mant += (1 << second_float.get_mant_cnt());
+
     std::uint64_t divided_ans =
         divide_int(big_first_mant, big_second_mant, ans.get_bit_for_sign(),
                    true, ans.get_mant_cnt());
+    bool had_shifted_one_time = false;
+    if ((divided_ans & (1 << ans.get_mant_cnt())) == 0) {
+        divided_ans =
+            divide_int(big_first_mant * 2, big_second_mant,
+                       ans.get_bit_for_sign(), true, ans.get_mant_cnt());
+        had_shifted_one_time = true;
+    }
     std::pair<std::uint32_t, std::int32_t> formatted_numb =
         format_big_number_to_mant_format(divided_ans << ans.get_mant_cnt(),
                                          ans.get_mant_cnt(),
@@ -33,8 +41,26 @@ PossibleFloat ExpressionHolder::divide(const PossibleFloat first_float,
     std::int32_t act_exp = normal_first_float.get_norm_exp() -
                            normal_second_float.get_norm_exp() +
                            formatted_numb.second;
-    format_int_exp_and_sign_to_possible_float(ans, formatted_numb.first,
-                                              act_exp);
+    if (had_shifted_one_time) {
+        act_exp--;
+    }
+    if (act_exp >= ans.get_min_non_denormalized_exp()) {
+        format_int_exp_and_sign_to_possible_float(ans, formatted_numb.first,
+                                                  act_exp);
+    }
+
+    else {
+        std::int32_t tmp =
+            static_cast<std::int32_t>(ans.get_mant_cnt()) -
+            (static_cast<std::int32_t>(ans.get_min_non_denormalized_exp()) -
+             act_exp);
+
+        tmp = std::max(0, tmp);
+        divided_ans =
+            divide_int(big_first_mant, big_second_mant, ans.get_bit_for_sign(),
+                       true, static_cast<std::uint32_t>(tmp));
+        ans.set_mant(static_cast<std::uint32_t>(divided_ans));
+    }
 
     return ans;
 }
