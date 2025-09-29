@@ -24,41 +24,28 @@ PossibleFloat ExpressionHolder::divide(const PossibleFloat first_float,
 
     big_second_mant += (1 << second_float.get_mant_cnt());
 
+    std::int32_t act_exp =
+        normal_first_float.get_norm_exp() - normal_second_float.get_norm_exp();
+    //Идея - привести к формату x/y где x < 2 * y && x >= y - это для обычных
+    //Если экспонента маленькая, то сдвигаем знаменатель на сколько-то бит влево и тупо делаем. Получаем ответ
+    if (2 * big_second_mant <= big_first_mant ||
+        big_first_mant < big_second_mant) {
+        big_first_mant *= 2;
+        act_exp -= 1;
+    }
     std::uint64_t divided_ans =
         divide_int(big_first_mant, big_second_mant, ans.get_bit_for_sign(),
                    true, ans.get_mant_cnt());
-    bool had_shifted_one_time = false;
-    if ((divided_ans & (1 << ans.get_mant_cnt())) == 0) {
-        divided_ans =
-            divide_int(big_first_mant * 2, big_second_mant,
-                       ans.get_bit_for_sign(), true, ans.get_mant_cnt());
-        had_shifted_one_time = true;
-    }
-    std::pair<std::uint32_t, std::int32_t> formatted_numb =
-        format_big_number_to_mant_format(divided_ans << ans.get_mant_cnt(),
-                                         ans.get_mant_cnt(),
-                                         ans.get_bit_for_sign());
-    std::int32_t act_exp = normal_first_float.get_norm_exp() -
-                           normal_second_float.get_norm_exp() +
-                           formatted_numb.second;
-    if (had_shifted_one_time) {
-        act_exp--;
-    }
     if (act_exp >= ans.get_min_non_denormalized_exp()) {
-        format_int_exp_and_sign_to_possible_float(ans, formatted_numb.first,
-                                                  act_exp);
+        format_int_exp_and_sign_to_possible_float(ans, divided_ans, act_exp);
     }
-
     else {
-        std::int32_t tmp =
-            static_cast<std::int32_t>(ans.get_mant_cnt()) -
-            (static_cast<std::int32_t>(ans.get_min_non_denormalized_exp()) -
-             act_exp);
-
-        tmp = std::max(0, tmp);
+        std::int32_t act_shift = (ans.get_min_non_denormalized_exp() - act_exp);
+        act_shift = std::min(act_shift,
+                             static_cast<std::int32_t>(ans.get_mant_cnt() + 1));
         divided_ans =
-            divide_int(big_first_mant, big_second_mant, ans.get_bit_for_sign(),
-                       true, static_cast<std::uint32_t>(tmp));
+            divide_int(big_first_mant, big_second_mant << act_shift,
+                       ans.get_bit_for_sign(), true, ans.get_mant_cnt());
         ans.set_mant(static_cast<std::uint32_t>(divided_ans));
     }
 
