@@ -38,7 +38,6 @@ InputQuery Parser::parse_input_query(const std::vector<std::string>&& argv) {
     PossibleFloat third_number(cur_cnt_for_exp, cur_cnt_for_mant);
     PossibleRounding cur_rounding;
     PossibleOperations cur_operation = PossibleOperations::NO_OPER;
-
     if (argv[1].size() != 1) {
         throw MyException(EXIT_FAILURE,
                           "Invalid input operation format:" + argv[1]);

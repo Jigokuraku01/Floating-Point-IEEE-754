@@ -1,5 +1,6 @@
 #include "expression_holder.hpp"
 #include "i_possible_float_numbers.hpp"
+#include <cstdint>
 #include <utility>
 
 PossibleFloat ExpressionHolder::divide(const PossibleFloat first_float,
@@ -29,10 +30,9 @@ PossibleFloat ExpressionHolder::divide(const PossibleFloat first_float,
         format_big_number_to_mant_format(divided_ans << ans.get_mant_cnt(),
                                          ans.get_mant_cnt(),
                                          ans.get_bit_for_sign());
-    std::int32_t act_exp = static_cast<std::int32_t>(first_float.get_exp()) -
-                           static_cast<std::int32_t>(second_float.get_exp()) +
-                           formatted_numb.second -
-                           (2 * static_cast<std::int32_t>(ans.get_exp_bias()));
+    std::int32_t act_exp = normal_first_float.get_norm_exp() -
+                           normal_second_float.get_norm_exp() +
+                           formatted_numb.second;
     format_int_exp_and_sign_to_possible_float(ans, formatted_numb.first,
                                               act_exp);
 
@@ -54,24 +54,35 @@ PossibleFloat ExpressionHolder::mult(const PossibleFloat first_float,
                      normal_second_float.get_sign());
 
     std::uint64_t big_first_mant = normal_first_float.get_norm_mant();
-    if (first_float.get_exp() != 0) {
-        big_first_mant += (1 << first_float.get_mant_cnt());
-    }
+
+    big_first_mant += (1 << first_float.get_mant_cnt());
+
     std::uint64_t big_second_mant = normal_second_float.get_norm_mant();
-    if (second_float.get_exp() != 0) {
-        big_second_mant += (1 << second_float.get_mant_cnt());
-    }
+    big_second_mant += (1 << second_float.get_mant_cnt());
+
     std::uint64_t pos_mult = big_first_mant * big_second_mant;
 
     std::pair<std::uint32_t, std::int32_t> formatted_numb =
         format_big_number_to_mant_format(pos_mult, ans.get_mant_cnt(),
                                          ans.get_bit_for_sign());
-    std::int32_t act_exp = static_cast<std::int32_t>(first_float.get_exp()) +
-                           static_cast<std::int32_t>(second_float.get_exp()) +
-                           formatted_numb.second -
-                           (2 * static_cast<std::int32_t>(ans.get_exp_bias()));
-    format_int_exp_and_sign_to_possible_float(ans, formatted_numb.first,
-                                              act_exp);
+    std::int32_t act_exp = normal_first_float.get_norm_exp() +
+                           normal_second_float.get_norm_exp() +
+                           formatted_numb.second;
+    if (act_exp >= ans.get_min_non_denormalized_exp()) {
+        format_int_exp_and_sign_to_possible_float(ans, formatted_numb.first,
+                                                  act_exp);
+    }
+    else {
+        std::uint32_t index_of_last_one = UINT32_MAX;
+        for (std::uint32_t i = 0; i < sizeof(pos_mult) * 8; ++i) {
+            if (((1LL << i) & pos_mult) != 0) {
+                index_of_last_one = i;
+            }
+        }
+        format_int_exp_and_sign_to_possible_float(
+            ans, formatted_numb.first, act_exp, true, pos_mult,
+            index_of_last_one - (ans.get_mant_cnt()));
+    }
 
     return ans;
 }

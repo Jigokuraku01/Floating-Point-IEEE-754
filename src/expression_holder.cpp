@@ -69,15 +69,6 @@ ExpressionHolder::format_to_output(const PossibleFloat& inp_float) {
     ans.second = std::format(
         "0x{:0{}X}", inp_float.get_numb(),
         (inp_float.get_exp_cnt() + inp_float.get_mant_cnt() + 4) / 4);
-    if (inp_float.check_if_zero()) {
-        if (inp_float.get_bit_for_sign() == 0) {
-            ans.first = "0x0p+0";
-        }
-        else {
-            ans.first = "-0x0p+0";
-        }
-        return ans;
-    }
     if (inp_float.check_if_nan().first) {
         ans.first = "nan";
         return ans;
@@ -100,14 +91,20 @@ ExpressionHolder::format_to_output(const PossibleFloat& inp_float) {
     }
     std::int32_t act_exp = cur_normal_form.get_norm_exp();
     std::string exp_sign = "+";
+    std::string head_bit = "1";
     if (act_exp < 0) {
         exp_sign = "";
+    }
+    if (inp_float.check_if_zero()) {
+        exp_sign = "+";
+        head_bit = "0";
+        act_exp = 0;
     }
     auto hex_digits_for_mantissa =
         static_cast<std::int32_t>((inp_float.get_mant_cnt() + 3) / 4);
     mant <<= static_cast<std::uint32_t>(hex_digits_for_mantissa * 4) -
              inp_float.get_mant_cnt();
-    ans.first = std::format("{}0x1.{:0{}x}p{}{}", sign_str, mant,
+    ans.first = std::format("{}0x{}.{:0{}x}p{}{}", sign_str, head_bit, mant,
                             hex_digits_for_mantissa, exp_sign, act_exp);
     return ans;
 }
@@ -115,6 +112,29 @@ ExpressionHolder::format_to_output(const PossibleFloat& inp_float) {
 std::uint64_t ExpressionHolder::round_to_bin_and_shift(std::uint64_t inpValue,
                                                        std::uint64_t cntOfBits,
                                                        std::uint32_t sign) {
+    if (inpValue == 0) {
+        return 0;
+    }
+    if (cntOfBits >= 64) {
+        switch (m_curInpQuery.get_cur_rounding()) {
+            case (PossibleRounding::TOWARD_ZERO):
+            case (PossibleRounding::TOWARD_NEAREST_EVEN): {
+                return 0;
+            }
+            case (PossibleRounding::TOWARD_POS_INFINITY): {
+                if (sign == 0) {
+                    return 1;
+                }
+                return 0;
+            }
+            case (PossibleRounding::TOWARD_NEG_INFINITY): {
+                if (sign == 1) {
+                    return 1;
+                }
+                return 0;
+            }
+        }
+    }
     return divide_int(inpValue, 1LL << cntOfBits, sign, false, cntOfBits);
 }
 
@@ -192,7 +212,9 @@ std::uint64_t ExpressionHolder::divide_int(std::uint64_t big_first_numb,
 }
 
 void ExpressionHolder::format_int_exp_and_sign_to_possible_float(
-    PossibleFloat& ans_float, std::uint64_t mant, std::int64_t exp) {
+    PossibleFloat& ans_float, std::uint64_t mant, std::int64_t exp,
+    bool should_work_with_prev_big_number, std::uint64_t prev_big_number,
+    std::uint32_t added_shift) {
     if (exp >= ans_float.get_min_non_denormalized_exp() &&
         exp <= ans_float.get_max_exp()) {
         ans_float.set_exp(
@@ -242,15 +264,22 @@ void ExpressionHolder::format_int_exp_and_sign_to_possible_float(
         return;
     }
     ans_float.set_exp(0);
-    auto act_exp_without_denormalized_tail = static_cast<std::int32_t>(
-        exp - ans_float.get_min_non_denormalized_exp() +
-        static_cast<std::int32_t>(ans_float.get_mant_cnt()));
-    ans_float.set_mant(static_cast<std::uint32_t>(round_to_bin_and_shift(
-        mant,
-        static_cast<std::uint32_t>(
-            static_cast<std::int32_t>(ans_float.get_mant_cnt()) -
-            act_exp_without_denormalized_tail),
-        ans_float.get_bit_for_sign())));
+    auto act_exp_without_denormalized_tail =
+        (-1) *
+        static_cast<std::int32_t>(
+            exp + (static_cast<std::int32_t>(ans_float.get_exp_bias() - 1)));
+    if (!should_work_with_prev_big_number) {
+        ans_float.set_mant(static_cast<std::uint32_t>(round_to_bin_and_shift(
+            mant, static_cast<std::uint32_t>(act_exp_without_denormalized_tail),
+            ans_float.get_bit_for_sign())));
+    }
+    else {
+        ans_float.set_mant(static_cast<std::uint32_t>(round_to_bin_and_shift(
+            prev_big_number,
+            static_cast<std::uint32_t>(act_exp_without_denormalized_tail) +
+                added_shift,
+            ans_float.get_bit_for_sign())));
+    }
 }
 
 std::uint64_t get_all_ones_at_inp_bit_cnt(std::uint32_t inpCnt) {
@@ -274,7 +303,7 @@ ExpressionHolder::format_big_number_to_mant_format(std::uint64_t inp_number,
     if (max_one_bit_cnt == UINT32_MAX) {
         throw MyException(EXIT_FAILURE, "Runtime problem with formatting");
     }
-    if (max_one_bit_cnt <= 2 * mant_cnt) {
+    if (max_one_bit_cnt < 2 * mant_cnt) {
         return {round_to_bin_and_shift(inp_number
                                            << (2 * mant_cnt - max_one_bit_cnt),
                                        mant_cnt, sign),
@@ -283,7 +312,7 @@ ExpressionHolder::format_big_number_to_mant_format(std::uint64_t inp_number,
     }
     std::uint64_t tmp =
         round_to_bin_and_shift(inp_number, max_one_bit_cnt - mant_cnt, sign) &
-        get_all_ones_at_inp_bit_cnt(mant_cnt);
+        get_all_ones_at_inp_bit_cnt(mant_cnt + 1);
 
     return {tmp, max_one_bit_cnt - (2 * mant_cnt)};
 }

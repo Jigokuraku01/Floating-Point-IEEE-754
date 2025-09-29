@@ -72,7 +72,7 @@ void PossibleFloat::set_bit_sign(std::uint32_t inp_sign) {
 void PossibleFloat::set_exp(std::uint32_t inp_exp) {
     inp_exp &= get_all_ones_at_inp_bit_cnt(m_exp_cnt_of_bits);
     m_actual_number &= (get_all_ones_at_inp_bit_cnt(m_mant_cnt_of_bits) +
-                        (1 << (m_mant_cnt_of_bits + m_exp_cnt_of_bits)));
+                        (1 << (get_mant_cnt() + get_exp_cnt())));
     m_actual_number |= (inp_exp << m_mant_cnt_of_bits);
 }
 void PossibleFloat::set_mant(std::uint32_t inp_mant) {
@@ -148,10 +148,9 @@ NormalFloatNumerHandler PossibleFloat::get_normal_form() const {
             index_of_last_one = i;
         }
     }
-    act_mant <<= (get_mant_cnt() - index_of_last_one + 1);
-    act_exp -=
-        static_cast<std::int32_t>((get_mant_cnt() - index_of_last_one + 1));
-    return {act_exp,
+    act_mant <<= (get_mant_cnt() - index_of_last_one);
+    act_exp -= static_cast<std::int32_t>((get_mant_cnt() - index_of_last_one));
+    return {act_exp + 1,
             static_cast<uint32_t>(act_mant &
                                   get_all_ones_at_inp_bit_cnt(get_mant_cnt())),
             get_bit_for_sign() == 1};

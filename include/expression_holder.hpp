@@ -29,15 +29,17 @@ class ExpressionHolder {
                       PossibleFloat third_float);
     PossibleFloat mad(PossibleFloat first_float, PossibleFloat second_float,
                       PossibleFloat third_float);
-    //first one is formatted number in formant 1{mant_cnt} << mant_cnt_bits, second is multiplier
+    //first one is formatted number in formant 1{mant_cnt}, second is multiplier
+    //input in format 1{mant} << mant_bit_cnt
     [[nodiscard]]
     std::pair<std::uint32_t, std::int32_t> format_big_number_to_mant_format(
         std::uint64_t inp_number, std::uint32_t mant_cnt, std::uint32_t sign);
     //sign have to be gained from PossibleFloat
     //mant in format 1.{some_numbers}. Size of some_numbers = mant_cnt. This function should round with exp
-    void format_int_exp_and_sign_to_possible_float(PossibleFloat& ans_float,
-                                                   std::uint64_t mant,
-                                                   std::int64_t exp);
+    void format_int_exp_and_sign_to_possible_float(
+        PossibleFloat& ans_float, std::uint64_t mant, std::int64_t exp,
+        bool should_work_with_prev_big_number = false,
+        std::uint64_t prev_big_number = 0, std::uint32_t added_shift = 0);
     static std::pair<bool, PossibleFloat>
     divide_checks(PossibleFloat first_float, PossibleFloat second_float);
     static std::pair<bool, PossibleFloat>
