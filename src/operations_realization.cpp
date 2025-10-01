@@ -121,7 +121,7 @@ PossibleFloat ExpressionHolder::plus(const PossibleFloat first_float,
                       first_float_clone.get_mant_cnt());
     ans.set_bit_sign(first_float_clone.get_bit_for_sign());
 
-    constexpr const int size_of_bigint = 100;
+    constexpr const int size_of_bigint = 300;
 
     BigInt<size_of_bigint> first_bigint{first_float_clone.get_mant()};
     BigInt<size_of_bigint> second_bigint{second_float_clone.get_mant()};

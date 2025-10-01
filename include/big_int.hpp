@@ -115,13 +115,15 @@ class BigInt {
                 break;
             }
             case (PossibleRounding::TOWARD_POS_INFINITY): {
-                if (inp_float.get_bit_for_sign() == 0) {
+                if (inp_float.get_bit_for_sign() == 0 &&
+                    fract_slice != BigInt<N>(0)) {
                     act_mant += 1;
                 }
                 break;
             }
             case (PossibleRounding::TOWARD_NEG_INFINITY): {
-                if (inp_float.get_bit_for_sign() == 1) {
+                if (inp_float.get_bit_for_sign() == 1 &&
+                    fract_slice != BigInt<N>(0)) {
                     act_mant += 1;
                 }
                 break;
