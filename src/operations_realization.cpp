@@ -151,6 +151,9 @@ PossibleFloat ExpressionHolder::plus(const PossibleFloat first_float,
                                    PossibleRounding::TOWARD_NEG_INFINITY) {
         ans = ans.create_zero(PossibleFloat::neg_sign_code);
     }
+    else if (ans.check_if_zero()) {
+        ans = ans.create_zero(PossibleFloat::pos_sign_code);
+    }
     return ans;
 }
 
