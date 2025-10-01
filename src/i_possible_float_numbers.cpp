@@ -7,59 +7,59 @@
 #include <string>
 #include <utility>
 
-PossibleFloat::PossibleFloat(std::uint32_t exp_cnt, std::uint32_t mant_cnt,
-                             std::uint32_t act_number)
+PossibleFloat::PossibleFloat(std::uint64_t exp_cnt, std::uint64_t mant_cnt,
+                             std::uint64_t act_number)
     : m_exp_cnt_of_bits(exp_cnt), m_mant_cnt_of_bits(mant_cnt),
       m_actual_number(act_number) {
 }
 [[nodiscard]]
-std::uint32_t PossibleFloat::get_bit_for_sign() const {
+std::uint64_t PossibleFloat::get_bit_for_sign() const {
     return m_actual_number >> (m_exp_cnt_of_bits + m_mant_cnt_of_bits);
 }
 
 [[nodiscard]]
-std::uint32_t PossibleFloat::get_exp_cnt() const {
+std::uint64_t PossibleFloat::get_exp_cnt() const {
     return m_exp_cnt_of_bits;
 }
 
 [[nodiscard]]
-std::uint32_t PossibleFloat::get_numb() const {
+std::uint64_t PossibleFloat::get_numb() const {
     return m_actual_number;
 }
 
 [[nodiscard]]
-std::uint32_t PossibleFloat::get_exp() const {
+std::uint64_t PossibleFloat::get_exp() const {
     return (m_actual_number >> m_mant_cnt_of_bits) &
            get_all_ones_at_inp_bit_cnt(m_exp_cnt_of_bits);
 }
 
 [[nodiscard]]
-std::uint32_t PossibleFloat::get_mant_cnt() const {
+std::uint64_t PossibleFloat::get_mant_cnt() const {
     return m_mant_cnt_of_bits;
 }
 
 [[nodiscard]]
-std::uint32_t PossibleFloat::get_mant() const {
+std::uint64_t PossibleFloat::get_mant() const {
     return m_actual_number & get_all_ones_at_inp_bit_cnt(m_mant_cnt_of_bits);
 }
 
 [[nodiscard]]
-std::int32_t PossibleFloat::get_max_exp() const {
-    return static_cast<std::int32_t>(
+std::int64_t PossibleFloat::get_max_exp() const {
+    return static_cast<std::int64_t>(
         get_all_ones_at_inp_bit_cnt(get_exp_cnt()) - 1 - get_exp_bias());
 }
 
 [[nodiscard]]
-std::int32_t PossibleFloat::get_min_non_denormalized_exp() const {
-    return static_cast<std::int32_t>(1 - get_exp_bias());
+std::int64_t PossibleFloat::get_min_non_denormalized_exp() const {
+    return static_cast<std::int64_t>(1 - get_exp_bias());
 }
 
 [[nodiscard]]
-std::uint32_t PossibleFloat::get_exp_bias() const {
+std::uint64_t PossibleFloat::get_exp_bias() const {
     return (1 << (get_exp_cnt() - 1)) - 1;
 }
 
-void PossibleFloat::set_bit_sign(std::uint32_t inp_sign) {
+void PossibleFloat::set_bit_sign(std::uint64_t inp_sign) {
     if (inp_sign != pos_sign_code && inp_sign != neg_sign_code) {
         throw MyException(EXIT_FAILURE, "invalid sign bit");
     }
@@ -69,13 +69,13 @@ void PossibleFloat::set_bit_sign(std::uint32_t inp_sign) {
     m_actual_number |= (inp_sign) << (m_exp_cnt_of_bits + m_mant_cnt_of_bits);
 }
 
-void PossibleFloat::set_exp(std::uint32_t inp_exp) {
+void PossibleFloat::set_exp(std::uint64_t inp_exp) {
     inp_exp &= get_all_ones_at_inp_bit_cnt(m_exp_cnt_of_bits);
     m_actual_number &= (get_all_ones_at_inp_bit_cnt(m_mant_cnt_of_bits) +
                         (1 << (get_mant_cnt() + get_exp_cnt())));
     m_actual_number |= (inp_exp << m_mant_cnt_of_bits);
 }
-void PossibleFloat::set_mant(std::uint32_t inp_mant) {
+void PossibleFloat::set_mant(std::uint64_t inp_mant) {
     inp_mant &= get_all_ones_at_inp_bit_cnt(m_mant_cnt_of_bits);
     m_actual_number &=
         (get_all_ones_at_inp_bit_cnt(get_mant_cnt() + get_exp_cnt() + 1) -
@@ -83,45 +83,40 @@ void PossibleFloat::set_mant(std::uint32_t inp_mant) {
     m_actual_number |= inp_mant;
 }
 
-void PossibleFloat::set_number(std::uint32_t inp_number) {
+void PossibleFloat::set_number(std::uint64_t inp_number) {
     m_actual_number = inp_number & get_all_ones_at_inp_bit_cnt(
                                        get_exp_cnt() + get_mant_cnt() + 1);
 }
 
 PossibleFloat PossibleFloat::create_nan() const {
     PossibleFloat new_float(get_exp_cnt(), get_mant_cnt());
-    new_float.set_exp(
-        static_cast<std::uint32_t>(get_all_ones_at_inp_bit_cnt(get_exp_cnt())));
+    new_float.set_exp(get_all_ones_at_inp_bit_cnt(get_exp_cnt()));
     new_float.set_mant(1 << (get_mant_cnt() - 1));
     return new_float;
 }
 
-PossibleFloat PossibleFloat::create_inf(std::uint32_t sign) const {
+PossibleFloat PossibleFloat::create_inf(std::uint64_t sign) const {
     if (sign >= 2) {
         throw MyException(EXIT_FAILURE, "invalid sign" + std::to_string(sign));
     }
     PossibleFloat new_float(get_exp_cnt(), get_mant_cnt());
-    new_float.set_exp(
-        static_cast<std::uint32_t>(get_all_ones_at_inp_bit_cnt(get_exp_cnt())));
+    new_float.set_exp(get_all_ones_at_inp_bit_cnt(get_exp_cnt()));
     new_float.set_bit_sign(sign);
     return new_float;
 }
 
-PossibleFloat PossibleFloat::create_max_number(std::uint32_t sign) const {
+PossibleFloat PossibleFloat::create_max_number(std::uint64_t sign) const {
     if (sign >= 2) {
         throw MyException(EXIT_FAILURE, "invalid sign" + std::to_string(sign));
     }
     PossibleFloat new_float(get_exp_cnt(), get_mant_cnt());
-    new_float.set_exp(static_cast<std::uint32_t>(get_all_ones_at_inp_bit_cnt(
-                          new_float.get_exp_cnt())) -
-                      1);
-    new_float.set_mant(static_cast<std::uint32_t>(
-        get_all_ones_at_inp_bit_cnt(new_float.get_mant_cnt())));
+    new_float.set_exp(get_all_ones_at_inp_bit_cnt(new_float.get_exp_cnt()) - 1);
+    new_float.set_mant(get_all_ones_at_inp_bit_cnt(new_float.get_mant_cnt()));
     new_float.set_bit_sign(get_bit_for_sign());
     return new_float;
 }
 
-PossibleFloat PossibleFloat::create_zero(std::uint32_t sign) const {
+PossibleFloat PossibleFloat::create_zero(std::uint64_t sign) const {
     if (sign >= 2) {
         throw MyException(EXIT_FAILURE, "invalid sign" + std::to_string(sign));
     }
@@ -133,27 +128,27 @@ PossibleFloat PossibleFloat::create_zero(std::uint32_t sign) const {
 NormalFloatNumerHandler PossibleFloat::get_normal_form() const {
     //do not work with zeros
     if (get_exp() != 0) {
-        return {static_cast<std::int32_t>(get_exp()) -
-                    static_cast<std::int32_t>(get_exp_bias()),
-                static_cast<uint32_t>(
+        return {static_cast<std::int64_t>(get_exp()) -
+                    static_cast<std::int64_t>(get_exp_bias()),
+                static_cast<uint64_t>(
                     get_mant() & get_all_ones_at_inp_bit_cnt(get_mant_cnt())),
-                get_bit_for_sign() == 1};
+                get_bit_for_sign()};
     }
-    std::int32_t act_exp = static_cast<std::int32_t>(get_exp()) -
-                           static_cast<std::int32_t>(get_exp_bias());
-    std::uint32_t act_mant = get_mant();
-    std::uint32_t index_of_last_one = get_mant_cnt() + 1;
-    for (std::uint32_t i = 0; i < get_mant_cnt(); ++i) {
+    std::int64_t act_exp = static_cast<std::int64_t>(get_exp()) -
+                           static_cast<std::int64_t>(get_exp_bias());
+    std::uint64_t act_mant = get_mant();
+    std::uint64_t index_of_last_one = get_mant_cnt() + 1;
+    for (std::uint64_t i = 0; i < get_mant_cnt(); ++i) {
         if ((act_mant & (1 << i)) != 0) {
             index_of_last_one = i;
         }
     }
     act_mant <<= (get_mant_cnt() - index_of_last_one);
-    act_exp -= static_cast<std::int32_t>((get_mant_cnt() - index_of_last_one));
+    act_exp -= static_cast<std::int64_t>((get_mant_cnt() - index_of_last_one));
     return {act_exp + 1,
-            static_cast<uint32_t>(act_mant &
+            static_cast<uint64_t>(act_mant &
                                   get_all_ones_at_inp_bit_cnt(get_mant_cnt())),
-            get_bit_for_sign() == 1};
+            get_bit_for_sign()};
 }
 
 std::pair<bool, PossibleFloat>
@@ -201,20 +196,20 @@ std::pair<bool, PossibleFloat> PossibleFloat::check_if_nan() const {
     return {true, new_float};
 }
 
-NormalFloatNumerHandler::NormalFloatNumerHandler(std::int32_t norm_exp,
-                                                 std::uint32_t norm_mant,
-                                                 bool sign)
+NormalFloatNumerHandler::NormalFloatNumerHandler(std::int64_t norm_exp,
+                                                 std::uint64_t norm_mant,
+                                                 std::uint64_t sign)
     : _norm_exp(norm_exp), _norm_mant(norm_mant), _sign(sign) {
 }
 
-std::int32_t NormalFloatNumerHandler::get_norm_exp() const {
+std::int64_t NormalFloatNumerHandler::get_norm_exp() const {
     return _norm_exp;
 }
 
-std::uint32_t NormalFloatNumerHandler::get_norm_mant() const {
+std::uint64_t NormalFloatNumerHandler::get_norm_mant() const {
     return _norm_mant;
 }
 
-bool NormalFloatNumerHandler::get_sign() const {
+std::uint64_t NormalFloatNumerHandler::get_sign() const {
     return _sign;
 }

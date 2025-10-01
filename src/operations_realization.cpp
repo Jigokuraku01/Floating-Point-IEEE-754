@@ -1,5 +1,7 @@
+#include "big_int.hpp"
 #include "expression_holder.hpp"
 #include "i_possible_float_numbers.hpp"
+#include "input_query.hpp"
 #include <cstdint>
 #include <utility>
 
@@ -24,7 +26,7 @@ PossibleFloat ExpressionHolder::divide(const PossibleFloat first_float,
 
     big_second_mant += (1 << second_float.get_mant_cnt());
 
-    std::int32_t act_exp =
+    std::int64_t act_exp =
         normal_first_float.get_norm_exp() - normal_second_float.get_norm_exp();
     //Идея - привести к формату x/y где x < 2 * y && x >= y - это для обычных
     //Если экспонента маленькая, то сдвигаем знаменатель на сколько-то бит влево и тупо делаем. Получаем ответ
@@ -40,13 +42,13 @@ PossibleFloat ExpressionHolder::divide(const PossibleFloat first_float,
         format_int_exp_and_sign_to_possible_float(ans, divided_ans, act_exp);
     }
     else {
-        std::int32_t act_shift = (ans.get_min_non_denormalized_exp() - act_exp);
+        std::int64_t act_shift = (ans.get_min_non_denormalized_exp() - act_exp);
         act_shift = std::min(act_shift,
-                             static_cast<std::int32_t>(ans.get_mant_cnt() + 1));
+                             static_cast<std::int64_t>(ans.get_mant_cnt() + 2));
         divided_ans =
             divide_int(big_first_mant, big_second_mant << act_shift,
                        ans.get_bit_for_sign(), true, ans.get_mant_cnt());
-        ans.set_mant(static_cast<std::uint32_t>(divided_ans));
+        ans.set_mant(divided_ans);
     }
 
     return ans;
@@ -75,10 +77,10 @@ PossibleFloat ExpressionHolder::mult(const PossibleFloat first_float,
 
     std::uint64_t pos_mult = big_first_mant * big_second_mant;
 
-    std::pair<std::uint32_t, std::int32_t> formatted_numb =
+    std::pair<std::uint64_t, std::int64_t> formatted_numb =
         format_big_number_to_mant_format(pos_mult, ans.get_mant_cnt(),
                                          ans.get_bit_for_sign());
-    std::int32_t act_exp = normal_first_float.get_norm_exp() +
+    std::int64_t act_exp = normal_first_float.get_norm_exp() +
                            normal_second_float.get_norm_exp() +
                            formatted_numb.second;
     if (act_exp >= ans.get_min_non_denormalized_exp()) {
@@ -86,8 +88,8 @@ PossibleFloat ExpressionHolder::mult(const PossibleFloat first_float,
                                                   act_exp);
     }
     else {
-        std::uint32_t index_of_last_one = UINT32_MAX;
-        for (std::uint32_t i = 0; i < sizeof(pos_mult) * 8; ++i) {
+        std::uint64_t index_of_last_one = UINT64_MAX;
+        for (std::uint64_t i = 0; i < sizeof(pos_mult) * 8; ++i) {
             if (((1LL << i) & pos_mult) != 0) {
                 index_of_last_one = i;
             }
@@ -101,17 +103,50 @@ PossibleFloat ExpressionHolder::mult(const PossibleFloat first_float,
 }
 PossibleFloat ExpressionHolder::plus(const PossibleFloat first_float,
                                      const PossibleFloat second_float) {
+    PossibleFloat first_float_clone = first_float;
+    PossibleFloat second_float_clone = second_float;
     std::pair<bool, PossibleFloat> checked_info =
-        plus_checks(first_float, second_float);
+        plus_checks(first_float_clone, second_float_clone);
     if (checked_info.first) {
         return checked_info.second;
     }
-    NormalFloatNumerHandler normal_first_float = first_float.get_normal_form();
-    NormalFloatNumerHandler normal_second_float = first_float.get_normal_form();
-    PossibleFloat ans(first_float.get_exp_cnt(), first_float.get_mant_cnt());
-    ans.set_bit_sign(normal_first_float.get_sign() ^
-                     normal_second_float.get_sign());
 
+    if ((first_float_clone.get_exp() < second_float_clone.get_exp()) ||
+        (first_float_clone.get_exp() == second_float_clone.get_exp() &&
+         first_float_clone.get_mant() < second_float_clone.get_mant())) {
+        std::swap(first_float_clone, second_float_clone);
+    }
+
+    PossibleFloat ans(first_float_clone.get_exp_cnt(),
+                      first_float_clone.get_mant_cnt());
+    ans.set_bit_sign(first_float_clone.get_bit_for_sign());
+
+    constexpr const int size_of_bigint = 100;
+
+    BigInt<size_of_bigint> first_bigint{first_float_clone.get_mant()};
+    BigInt<size_of_bigint> second_bigint{second_float_clone.get_mant()};
+
+    if (first_float_clone.get_exp() != 0) {
+        first_bigint +=
+            BigInt<size_of_bigint>(1LL << first_float_clone.get_mant_cnt());
+        first_bigint <<= (first_float_clone.get_exp() - 1);
+    }
+
+    if (second_float_clone.get_exp() != 0) {
+        second_bigint +=
+            BigInt<size_of_bigint>(1LL << second_float_clone.get_mant_cnt());
+        second_bigint <<= (second_float_clone.get_exp() - 1);
+    }
+
+    BigInt<size_of_bigint> ans_bigint;
+    if (first_float_clone.get_bit_for_sign() ==
+        second_float_clone.get_bit_for_sign()) {
+        ans_bigint = first_bigint + second_bigint;
+    }
+    else {
+        ans_bigint = first_bigint - second_bigint;
+    }
+    ans_bigint.format_to_float(ans, m_curInpQuery.get_cur_rounding());
     return ans;
 }
 

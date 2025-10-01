@@ -1,12 +1,12 @@
 #include "my_exception.hpp"
 
 #include <string>
-MyException::MyException(int32_t code, std::string error)
+MyException::MyException(int64_t code, std::string error)
     : m_code(code), m_error(std::move(error)) {
 }
 
 [[nodiscard]]
-int32_t MyException::get_code() const {
+int64_t MyException::get_code() const {
     return m_code;
 }
 

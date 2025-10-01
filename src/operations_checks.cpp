@@ -1,5 +1,6 @@
 #include "expression_holder.hpp"
 #include "i_possible_float_numbers.hpp"
+#include "my_exception.hpp"
 #include <utility>
 
 std::pair<bool, PossibleFloat>
@@ -74,13 +75,13 @@ ExpressionHolder::plus_checks(const PossibleFloat first_float,
     }
     PossibleFloat ans;
     if (first_float.check_if_inf() && second_float.check_if_inf()) {
-        std::int64_t sign =
+        std::uint64_t sign =
             first_float.get_bit_for_sign() ^ second_float.get_bit_for_sign();
         if (sign != 0) {
             ans = first_float.create_nan();
         }
         else {
-            ans = first_float.create_inf(static_cast<std::uint32_t>(sign));
+            ans = first_float.create_inf(sign);
         }
     }
     else if (first_float.check_if_inf() || second_float.check_if_inf()) {
@@ -106,6 +107,47 @@ ExpressionHolder::plus_checks(const PossibleFloat first_float,
         }
         else {
             ans = first_float;
+        }
+    }
+    if (ans.get_mant_cnt() != 0) {
+        return {true, ans};
+    }
+    return {false, ans};
+}
+
+std::pair<bool, PossibleFloat>
+ExpressionHolder::inf_max_checks(const PossibleFloat inp_float,
+                                 PossibleRounding cur_rounding) {
+    PossibleFloat ans;
+    switch (cur_rounding) {
+        case (PossibleRounding::TOWARD_ZERO): {
+            ans = inp_float.create_max_number(inp_float.get_bit_for_sign());
+            break;
+        }
+        case (PossibleRounding::TOWARD_NEAREST_EVEN): {
+            ans = inp_float.create_inf(inp_float.get_bit_for_sign());
+            break;
+        }
+        case (PossibleRounding::TOWARD_POS_INFINITY): {
+            if (inp_float.get_bit_for_sign() == PossibleFloat::pos_sign_code) {
+                ans = inp_float.create_inf(inp_float.get_bit_for_sign());
+            }
+            else {
+                ans = inp_float.create_max_number(inp_float.get_bit_for_sign());
+            }
+            break;
+        }
+        case (PossibleRounding::TOWARD_NEG_INFINITY): {
+            if (inp_float.get_bit_for_sign() == PossibleFloat::neg_sign_code) {
+                ans = inp_float.create_inf(inp_float.get_bit_for_sign());
+            }
+            else {
+                ans = inp_float.create_max_number(inp_float.get_bit_for_sign());
+            }
+            break;
+        }
+        default: {
+            throw MyException(EXIT_FAILURE, "invalid rounding");
         }
     }
     if (ans.get_mant_cnt() != 0) {

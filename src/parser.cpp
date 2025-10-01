@@ -7,7 +7,8 @@
 #include <string>
 #include <vector>
 
-InputQuery Parser::parse_input_query(const std::vector<std::string>&& argv) {
+InputQuery Parser::parse_input_query(const std::vector<std::string>&& argv_x) {
+    auto argv = argv_x;
     if (argv.size() != 3 && argv.size() != 5 && argv.size() != 6) {
         throw MyException(EXIT_FAILURE, "Invalid input format");
     }
@@ -69,6 +70,7 @@ InputQuery Parser::parse_input_query(const std::vector<std::string>&& argv) {
         first_number.set_number(parse_to_int(argv[2], 16));
     }
     else if (argv.size() == 5) {
+        //std::swap(argv[2], argv[3]);
         if (argv[2].size() != 1) {
             throw MyException(EXIT_FAILURE, "unknown operation: " + argv[2]);
         }
@@ -119,7 +121,7 @@ InputQuery Parser::parse_input_query(const std::vector<std::string>&& argv) {
     return ans;
 }
 
-std::uint32_t Parser::parse_to_int(const std::string& inpStr,
+std::uint64_t Parser::parse_to_int(const std::string& inpStr,
                                    std::int64_t base) {
     std::uint64_t pos = 0;
     std::uint64_t result =
@@ -130,5 +132,5 @@ std::uint32_t Parser::parse_to_int(const std::string& inpStr,
                           "Invalid input number format: " + inpStr.substr(pos));
     }
 
-    return static_cast<std::uint32_t>(result);
+    return result;
 }
