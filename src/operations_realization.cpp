@@ -147,6 +147,10 @@ PossibleFloat ExpressionHolder::plus(const PossibleFloat first_float,
         ans_bigint = first_bigint - second_bigint;
     }
     ans_bigint.format_to_float(ans, m_curInpQuery.get_cur_rounding());
+    if (ans.check_if_zero() && m_curInpQuery.get_cur_rounding() ==
+                                   PossibleRounding::TOWARD_NEG_INFINITY) {
+        ans = ans.create_zero(PossibleFloat::neg_sign_code);
+    }
     return ans;
 }
 
@@ -160,6 +164,8 @@ PossibleFloat ExpressionHolder::minus(const PossibleFloat first_float,
 PossibleFloat ExpressionHolder::fma(const PossibleFloat first_float,
                                     const PossibleFloat second_float,
                                     const PossibleFloat third_float) {
+    PossibleFloat ans_float((first_float.get_exp_cnt() * 2) + 1,
+                            (first_float.get_mant_cnt() * 2) + 1);
     //будет доработано позже. Сейчас заглушка
     return mad(first_float, second_float, third_float);
 }

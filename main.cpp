@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
     }
     catch (const MyException& e) {
         std::cerr << e.get_error();
-        return e.get_code();
+        return static_cast<std::int32_t>(e.get_code());
     }
     catch (const std::exception& e) {
         std::cerr << e.what();

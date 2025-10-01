@@ -86,11 +86,16 @@ class BigInt {
     }
     void format_to_float(PossibleFloat& inp_float,
                          PossibleRounding cur_rounding) {
-        std::uint64_t index_of_last_one;
+        std::uint64_t index_of_last_one = UINT64_MAX;
         for (std::uint64_t i = 0; i < N; ++i) {
             if (get_bit(i) == 1) {
                 index_of_last_one = i;
             }
+        }
+        if (index_of_last_one == UINT64_MAX) {
+            inp_float.set_mant(0);
+            inp_float.set_exp(0);
+            return;
         }
         if (index_of_last_one < inp_float.get_mant_cnt()) {
             inp_float.set_mant(0);
