@@ -186,11 +186,6 @@ class BigInt {
             get_numb(index_of_last_one - inp_float.get_mant_cnt(),
                      index_of_last_one + 1);
 
-        if (index_of_last_one == inp_float.get_mant_cnt()) {
-            inp_float.set_exp(act_exp);
-            inp_float.set_mant(act_mant);
-            return;
-        }
         if (fract_slice != BigInt<N>(0)) {
             switch (cur_rounding) {
                 case (PossibleRounding::TOWARD_ZERO): {
