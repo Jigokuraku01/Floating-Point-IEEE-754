@@ -67,9 +67,27 @@ class BigInt {
 
         return result;
     }
+    BigInt operator*(const BigInt& other) const {
+        BigInt result;
+        BigInt temp;
 
+        for (std::uint64_t i = 0; i < N; ++i) {
+            if (other.m_cur_bitset[i] == 1) {
+                temp = *this;
+                temp <<= i;
+                result = result + temp;
+            }
+        }
+
+        return result;
+    }
+
+    BigInt& operator*=(const BigInt& other) {
+        *this = *this * other;
+        return *this;
+    }
     BigInt<N> get_big_numb(std::uint64_t start = 0, std::uint64_t end = N) {
-        BigInt<N> ans;
+        auto ans = BigInt<N>(0);
         for (std::uint64_t i = start; i < end; ++i) {
             ans.set_bit(i, m_cur_bitset[i]);
         }
@@ -84,8 +102,10 @@ class BigInt {
         }
         return ans;
     }
-    void format_to_float(PossibleFloat& inp_float,
-                         PossibleRounding cur_rounding) {
+
+    void format_to_float_with_different_base(PossibleFloat& inp_float,
+                                             PossibleRounding cur_rounding,
+                                             std::uint64_t extra_base) {
         std::uint64_t index_of_last_one = UINT64_MAX;
         for (std::uint64_t i = 0; i < N; ++i) {
             if (get_bit(i) == 1) {
@@ -97,58 +117,116 @@ class BigInt {
             inp_float.set_exp(0);
             return;
         }
+        BigInt<N> tmp_fract_slice;
+        tmp_fract_slice = get_big_numb(0, extra_base);
+
+        m_cur_bitset >>= extra_base;
+        index_of_last_one = UINT64_MAX;
+        for (std::uint64_t i = 0; i < N; ++i) {
+            if (get_bit(i) == 1) {
+                index_of_last_one = i;
+            }
+        }
         if (index_of_last_one < inp_float.get_mant_cnt()) {
-            inp_float.set_mant(0);
-            inp_float.set_mant(get_numb(0, inp_float.get_mant_cnt() + 1));
+            std::uint64_t act_numb = get_numb();
+            if (tmp_fract_slice == BigInt<N>(0)) {
+                inp_float.set_exp(0);
+                inp_float.set_mant(act_numb);
+                return;
+            }
+            switch (cur_rounding) {
+                case (PossibleRounding::TOWARD_ZERO): {
+                    break;
+                }
+                case (PossibleRounding::TOWARD_POS_INFINITY): {
+                    if (inp_float.get_bit_for_sign() ==
+                        PossibleFloat::pos_sign_code) {
+                        act_numb += 1;
+                    }
+                    break;
+                }
+                case (PossibleRounding::TOWARD_NEG_INFINITY): {
+                    if (inp_float.get_bit_for_sign() ==
+                        PossibleFloat::neg_sign_code) {
+                        act_numb += 1;
+                    }
+                    break;
+                }
+                case (PossibleRounding::TOWARD_NEAREST_EVEN): {
+                    if (tmp_fract_slice > (BigInt<N>(1) << (extra_base - 1))) {
+                        act_numb += 1;
+                    }
+                    if (tmp_fract_slice == (BigInt<N>(1) << (extra_base - 1))) {
+                        if (act_numb % 2 == 1) {
+                            act_numb += 1;
+                        }
+                    }
+                    break;
+                }
+            }
+
+            if (act_numb >= (1ULL << inp_float.get_mant_cnt())) {
+                inp_float.set_mant(0);
+                inp_float.set_exp(1);
+            }
+            else {
+                inp_float.set_exp(0);
+                inp_float.set_mant(act_numb);
+            }
             return;
         }
         BigInt<N> fract_slice =
             get_big_numb(0, index_of_last_one - inp_float.get_mant_cnt());
+        fract_slice <<= extra_base;
+        fract_slice += tmp_fract_slice;
 
         std::uint64_t act_exp =
             index_of_last_one - inp_float.get_mant_cnt() + 1;
         std::uint64_t act_mant =
             get_numb(index_of_last_one - inp_float.get_mant_cnt(),
                      index_of_last_one + 1);
+
         if (index_of_last_one == inp_float.get_mant_cnt()) {
             inp_float.set_exp(act_exp);
             inp_float.set_mant(act_mant);
             return;
         }
-        switch (cur_rounding) {
-            case (PossibleRounding::TOWARD_ZERO): {
-                break;
-            }
-            case (PossibleRounding::TOWARD_POS_INFINITY): {
-                if (inp_float.get_bit_for_sign() == 0 &&
-                    fract_slice != BigInt<N>(0)) {
-                    act_mant += 1;
+        if (fract_slice != BigInt<N>(0)) {
+            switch (cur_rounding) {
+                case (PossibleRounding::TOWARD_ZERO): {
+                    break;
                 }
-                break;
-            }
-            case (PossibleRounding::TOWARD_NEG_INFINITY): {
-                if (inp_float.get_bit_for_sign() == 1 &&
-                    fract_slice != BigInt<N>(0)) {
-                    act_mant += 1;
-                }
-                break;
-            }
-            case (PossibleRounding::TOWARD_NEAREST_EVEN): {
-                std::uint64_t end_of_slice =
-                    index_of_last_one - inp_float.get_mant_cnt() - 1;
-                BigInt<N> shifted_one = (BigInt<N>(1) << end_of_slice);
-                if (fract_slice > shifted_one) {
-                    act_mant += 1;
-                }
-                if (fract_slice == shifted_one) {
-                    if ((act_mant & 1) == 1) {
+                case (PossibleRounding::TOWARD_POS_INFINITY): {
+                    if (inp_float.get_bit_for_sign() == 0 &&
+                        fract_slice != BigInt<N>(0)) {
                         act_mant += 1;
                     }
+                    break;
                 }
-                break;
+                case (PossibleRounding::TOWARD_NEG_INFINITY): {
+                    if (inp_float.get_bit_for_sign() == 1 &&
+                        fract_slice != BigInt<N>(0)) {
+                        act_mant += 1;
+                    }
+                    break;
+                }
+                case (PossibleRounding::TOWARD_NEAREST_EVEN): {
+                    std::uint64_t end_of_slice =
+                        index_of_last_one - inp_float.get_mant_cnt() - 1;
+                    BigInt<N> shifted_one =
+                        (BigInt<N>(1) << (end_of_slice + extra_base));
+                    if (fract_slice > shifted_one) {
+                        act_mant += 1;
+                    }
+                    if (fract_slice == shifted_one) {
+                        if ((act_mant & 1) == 1) {
+                            act_mant += 1;
+                        }
+                    }
+                    break;
+                }
             }
         }
-
         if (act_mant == (1LL << (inp_float.get_mant_cnt() + 1))) {
             act_mant >>= 1;
             act_exp += 1;
@@ -163,8 +241,14 @@ class BigInt {
             }
             return;
         }
+
         inp_float.set_exp(act_exp);
         inp_float.set_mant(act_mant);
+    }
+
+    void format_to_float(PossibleFloat& inp_float,
+                         PossibleRounding cur_rounding) {
+        format_to_float_with_different_base(inp_float, cur_rounding, 0);
     }
 
     BigInt operator<<(std::uint64_t shift) const {

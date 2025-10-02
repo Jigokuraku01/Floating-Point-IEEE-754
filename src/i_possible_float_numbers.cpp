@@ -173,6 +173,33 @@ PossibleFloat::check_if_nans(const PossibleFloat& first_float,
     return {false, ans};
 }
 
+std::pair<bool, PossibleFloat>
+PossibleFloat::check_if_nans3(const PossibleFloat& first_float,
+                              const PossibleFloat& second_float,
+                              const PossibleFloat& third_float) {
+    PossibleFloat ans;
+    std::pair<bool, PossibleFloat> first_pos_nan = first_float.check_if_nan();
+    std::pair<bool, PossibleFloat> sec_pos_nan = second_float.check_if_nan();
+    std::pair<bool, PossibleFloat> third_pos_nan = third_float.check_if_nan();
+    if (first_pos_nan.first) {
+        ans = first_pos_nan.second;
+    }
+    else if (sec_pos_nan.first) {
+        ans = sec_pos_nan.second;
+    }
+    else if (third_pos_nan.first) {
+        ans = third_pos_nan.second;
+    }
+    if (ans.get_mant_cnt() != 0) {
+        if ((ans.get_mant() >> (ans.get_mant_cnt() - 1)) == 0) {
+            ans.set_number(ans.get_numb() + (1 << (ans.get_mant_cnt() - 1)));
+        }
+        return {true, ans};
+    }
+
+    return {false, ans};
+}
+
 bool PossibleFloat::check_if_zero() const {
     return get_exp() == 0 && get_mant() == 0;
 }

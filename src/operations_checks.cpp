@@ -66,6 +66,48 @@ ExpressionHolder::mult_checks(const PossibleFloat first_float,
 }
 
 std::pair<bool, PossibleFloat>
+ExpressionHolder::fma_checks(const PossibleFloat first_float,
+                             const PossibleFloat second_float,
+                             const PossibleFloat third_float) {
+    std::pair<bool, PossibleFloat> check_nans_result =
+        PossibleFloat::check_if_nans3(first_float, second_float, third_float);
+    if (check_nans_result.first) {
+        return check_nans_result;
+    }
+    PossibleFloat ans;
+
+    if ((first_float.check_if_zero() && second_float.check_if_inf()) ||
+        (first_float.check_if_inf() && second_float.check_if_zero())) {
+        ans = first_float.create_nan();
+    }
+
+    else if ((first_float.check_if_inf() && third_float.check_if_inf()) ||
+             (second_float.check_if_inf() && third_float.check_if_inf())) {
+        if ((first_float.get_bit_for_sign() ^
+             second_float.get_bit_for_sign()) !=
+            third_float.get_bit_for_sign()) {
+            ans = first_float.create_nan();
+        }
+        else {
+            ans = third_float.create_inf(third_float.get_bit_for_sign());
+        }
+    }
+
+    else if (first_float.check_if_inf() || second_float.check_if_inf()) {
+        ans = first_float.create_inf(first_float.get_bit_for_sign() ^
+                                     second_float.get_bit_for_sign());
+    }
+    else if (third_float.check_if_inf()) {
+        ans = third_float.create_inf(third_float.get_bit_for_sign());
+    }
+
+    if (ans.get_mant_cnt() != 0) {
+        return {true, ans};
+    }
+    return {false, ans};
+}
+
+std::pair<bool, PossibleFloat>
 ExpressionHolder::plus_checks(const PossibleFloat first_float,
                               const PossibleFloat second_float) {
     std::pair<bool, PossibleFloat> check_nans_result =

@@ -7,8 +7,7 @@
 #include <string>
 #include <vector>
 
-InputQuery Parser::parse_input_query(const std::vector<std::string>&& argv_x) {
-    auto argv = argv_x;
+InputQuery Parser::parse_input_query(const std::vector<std::string>&& argv) {
     if (argv.size() != 3 && argv.size() != 5 && argv.size() != 6) {
         throw MyException(EXIT_FAILURE, "Invalid input format");
     }
@@ -70,7 +69,6 @@ InputQuery Parser::parse_input_query(const std::vector<std::string>&& argv_x) {
         first_number.set_number(parse_to_int(argv[2], 16));
     }
     else if (argv.size() == 5) {
-        //std::swap(argv[2], argv[3]);
         if (argv[2].size() != 1) {
             throw MyException(EXIT_FAILURE, "unknown operation: " + argv[2]);
         }
@@ -114,7 +112,7 @@ InputQuery Parser::parse_input_query(const std::vector<std::string>&& argv_x) {
         }
         first_number.set_number(parse_to_int(argv[3], 16));
         second_number.set_number(parse_to_int(argv[4], 16));
-        third_number.set_number(parse_to_int(argv[5], 10));
+        third_number.set_number(parse_to_int(argv[5], 16));
     }
     InputQuery ans = {first_number, second_number, third_number, cur_rounding,
                       cur_operation};

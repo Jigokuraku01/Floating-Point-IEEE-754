@@ -71,6 +71,11 @@ class PossibleFloat {
     check_if_nans(const PossibleFloat& first_float,
                   const PossibleFloat& second_float);
 
+    static std::pair<bool, PossibleFloat>
+    check_if_nans3(const PossibleFloat& first_float,
+                   const PossibleFloat& second_float,
+                   const PossibleFloat& third_float);
+
     [[nodiscard]]
     bool check_if_zero() const;
 

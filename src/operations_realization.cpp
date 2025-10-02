@@ -167,10 +167,64 @@ PossibleFloat ExpressionHolder::minus(const PossibleFloat first_float,
 PossibleFloat ExpressionHolder::fma(const PossibleFloat first_float,
                                     const PossibleFloat second_float,
                                     const PossibleFloat third_float) {
-    PossibleFloat ans_float((first_float.get_exp_cnt() * 2) + 1,
-                            (first_float.get_mant_cnt() * 2) + 1);
-    //будет доработано позже. Сейчас заглушка
-    return mad(first_float, second_float, third_float);
+    std::pair<bool, PossibleFloat> checked_info =
+        fma_checks(first_float, second_float, third_float);
+    if (checked_info.first) {
+        return checked_info.second;
+    }
+    constexpr int size_of_bigint = 600;
+    BigInt<size_of_bigint> first_bigint{first_float.get_mant()};
+    BigInt<size_of_bigint> second_bigint{second_float.get_mant()};
+    BigInt<size_of_bigint> third_bigint{third_float.get_mant()};
+    if (first_float.get_exp() != 0) {
+        first_bigint +=
+            BigInt<size_of_bigint>{1ULL << first_float.get_mant_cnt()};
+        first_bigint <<= first_float.get_exp();
+    }
+    if (second_float.get_exp() != 0) {
+        second_bigint +=
+            BigInt<size_of_bigint>{1ULL << second_float.get_mant_cnt()};
+        second_bigint <<= second_float.get_exp();
+    }
+    if (third_float.get_exp() != 0) {
+        third_bigint +=
+            BigInt<size_of_bigint>{1ULL << third_float.get_mant_cnt()};
+        third_bigint <<= third_float.get_exp();
+    }
+    third_bigint <<= (third_float.get_exp_bias() + third_float.get_mant_cnt());
+
+    BigInt<size_of_bigint> ans_bigint_mult = (first_bigint * second_bigint);
+    BigInt<size_of_bigint> ans_bigint;
+    PossibleFloat ans(first_float.get_exp_cnt(), second_float.get_mant_cnt());
+    if ((first_float.get_bit_for_sign() ^ second_float.get_bit_for_sign()) ==
+        third_float.get_bit_for_sign()) {
+        ans_bigint = ans_bigint_mult + third_bigint;
+        ans.set_bit_sign(third_float.get_bit_for_sign());
+    }
+    else {
+        BigInt<size_of_bigint> bigger_abs_bigint = ans_bigint_mult;
+        BigInt<size_of_bigint> smaller_abs_bigint = third_bigint;
+        ans.set_bit_sign(first_float.get_bit_for_sign() ^
+                         second_float.get_bit_for_sign());
+        if (bigger_abs_bigint < smaller_abs_bigint) {
+            std::swap(bigger_abs_bigint, smaller_abs_bigint);
+            ans.set_bit_sign(third_float.get_bit_for_sign());
+        }
+        ans_bigint = bigger_abs_bigint - smaller_abs_bigint;
+    }
+
+    ans_bigint.format_to_float_with_different_base(
+        ans, m_curInpQuery.get_cur_rounding(),
+        first_float.get_exp_bias() + first_float.get_mant_cnt() + 1);
+
+    if (ans.check_if_zero() && m_curInpQuery.get_cur_rounding() ==
+                                   PossibleRounding::TOWARD_NEG_INFINITY) {
+        ans = ans.create_zero(PossibleFloat::neg_sign_code);
+    }
+    else if (ans.check_if_zero()) {
+        ans = ans.create_zero(PossibleFloat::pos_sign_code);
+    }
+    return ans;
 }
 
 PossibleFloat ExpressionHolder::mad(const PossibleFloat first_float,

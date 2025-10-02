@@ -45,6 +45,9 @@ class ExpressionHolder {
     mult_checks(PossibleFloat first_float, PossibleFloat second_float);
     static std::pair<bool, PossibleFloat>
     plus_checks(PossibleFloat first_float, PossibleFloat second_float);
+    static std::pair<bool, PossibleFloat> fma_checks(PossibleFloat first_float,
+                                                     PossibleFloat second_float,
+                                                     PossibleFloat third_float);
 
     static std::pair<std::string, std::string>
     format_to_output(const PossibleFloat& inp_float);
