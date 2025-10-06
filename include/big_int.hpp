@@ -87,6 +87,9 @@ class BigInt {
         return *this;
     }
     BigInt<N> get_big_numb(std::uint64_t start = 0, std::uint64_t end = N) {
+        if (end > N) {
+            return *this;
+        }
         auto ans = BigInt<N>(0);
         for (std::uint64_t i = start; i < end; ++i) {
             ans.set_bit(i, m_cur_bitset[i]);
@@ -94,6 +97,8 @@ class BigInt {
         return ans;
     }
     std::uint64_t get_numb(std::uint64_t start = 0, std::uint64_t end = N) {
+        start = std::min(start, N);
+        end = std::min(end, N);
         std::uint64_t ans = 0;
         std::uint64_t mult = 1;
         for (std::uint64_t i = start; i < end; ++i) {
@@ -127,7 +132,8 @@ class BigInt {
                 index_of_last_one = i;
             }
         }
-        if (index_of_last_one < inp_float.get_mant_cnt()) {
+        if (index_of_last_one == UINT64_MAX ||
+            index_of_last_one < inp_float.get_mant_cnt()) {
             std::uint64_t act_numb = get_numb();
             if (tmp_fract_slice == BigInt<N>(0)) {
                 inp_float.set_exp(0);
