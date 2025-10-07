@@ -78,7 +78,6 @@ class BigInt {
                 result = result + temp;
             }
         }
-
         return result;
     }
 
@@ -253,21 +252,9 @@ class BigInt {
     }
 
     BigInt operator<<(std::uint64_t shift) const {
-        BigInt<N> result;
+        BigInt<N> result = *this;
 
-        if (shift >= N) {
-            return BigInt(0);
-        }
-
-        for (std::int64_t i = N - 1; i >= static_cast<std::int64_t>(shift);
-             --i) {
-            result.m_cur_bitset[static_cast<std::uint64_t>(i)] =
-                m_cur_bitset[static_cast<std::uint64_t>(i) - shift];
-        }
-
-        for (std::uint64_t i = 0; i < shift && i < N; ++i) {
-            result.m_cur_bitset[i] = 0;
-        }
+        result.m_cur_bitset <<= shift;
 
         return result;
     }
@@ -276,19 +263,9 @@ class BigInt {
         return *this;
     }
     BigInt operator>>(std::uint64_t shift) const {
-        BigInt result;
+        BigInt result = *this;
 
-        if (shift >= N) {
-            return BigInt(0);
-        }
-
-        for (std::uint64_t i = 0; i < N - shift; ++i) {
-            result.set_bit(i, m_cur_bitset[i + shift]);
-        }
-
-        for (std::uint64_t i = N - shift; i < N; ++i) {
-            result.set_bit(i, 0);
-        }
+        result.m_cur_bitset >>= shift;
 
         return result;
     }

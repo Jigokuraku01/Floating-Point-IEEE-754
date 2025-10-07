@@ -60,45 +60,11 @@ PossibleFloat ExpressionHolder::mult(const PossibleFloat first_float,
     if (checked_info.first) {
         return checked_info.second;
     }
-    NormalFloatNumerHandler normal_first_float = first_float.get_normal_form();
-    NormalFloatNumerHandler normal_second_float =
-        second_float.get_normal_form();
+    PossibleFloat zero = first_float.create_zero(PossibleFloat::pos_sign_code);
 
-    PossibleFloat ans(first_float.get_exp_cnt(), first_float.get_mant_cnt());
-    ans.set_bit_sign(normal_first_float.get_sign() ^
-                     normal_second_float.get_sign());
-
-    std::uint64_t big_first_mant = normal_first_float.get_norm_mant();
-
-    big_first_mant += (1 << first_float.get_mant_cnt());
-
-    std::uint64_t big_second_mant = normal_second_float.get_norm_mant();
-    big_second_mant += (1 << second_float.get_mant_cnt());
-
-    std::uint64_t pos_mult = big_first_mant * big_second_mant;
-
-    std::pair<std::uint64_t, std::int64_t> formatted_numb =
-        format_big_number_to_mant_format(pos_mult, ans.get_mant_cnt(),
-                                         ans.get_bit_for_sign());
-    std::int64_t act_exp = normal_first_float.get_norm_exp() +
-                           normal_second_float.get_norm_exp() +
-                           formatted_numb.second;
-    if (act_exp >= ans.get_min_non_denormalized_exp()) {
-        format_int_exp_and_sign_to_possible_float(ans, formatted_numb.first,
-                                                  act_exp);
-    }
-    else {
-        std::uint64_t index_of_last_one = UINT64_MAX;
-        for (std::uint64_t i = 0; i < sizeof(pos_mult) * 8; ++i) {
-            if (((1LL << i) & pos_mult) != 0) {
-                index_of_last_one = i;
-            }
-        }
-        format_int_exp_and_sign_to_possible_float(
-            ans, formatted_numb.first, act_exp, true, pos_mult,
-            index_of_last_one - (ans.get_mant_cnt()));
-    }
-
+    PossibleFloat ans = fma(first_float, second_float, zero);
+    ans.set_bit_sign(first_float.get_bit_for_sign() ^
+                     second_float.get_bit_for_sign());
     return ans;
 }
 PossibleFloat ExpressionHolder::plus(const PossibleFloat first_float,
@@ -179,20 +145,21 @@ PossibleFloat ExpressionHolder::fma(const PossibleFloat first_float,
     if (first_float.get_exp() != 0) {
         first_bigint +=
             BigInt<size_of_bigint>{1ULL << first_float.get_mant_cnt()};
-        first_bigint <<= first_float.get_exp();
+        first_bigint <<= (first_float.get_exp() - 1);
     }
     if (second_float.get_exp() != 0) {
         second_bigint +=
             BigInt<size_of_bigint>{1ULL << second_float.get_mant_cnt()};
-        second_bigint <<= second_float.get_exp();
+        second_bigint <<= (second_float.get_exp() - 1);
     }
     if (third_float.get_exp() != 0) {
         third_bigint +=
             BigInt<size_of_bigint>{1ULL << third_float.get_mant_cnt()};
-        third_bigint <<= third_float.get_exp();
+        third_bigint <<= (third_float.get_exp() - 1);
     }
-    third_bigint <<= (third_float.get_exp_bias() + third_float.get_mant_cnt());
-
+    third_bigint <<= (static_cast<std::uint64_t>(
+                          -(third_float.get_min_non_denormalized_exp())) +
+                      third_float.get_mant_cnt());
     BigInt<size_of_bigint> ans_bigint_mult = (first_bigint * second_bigint);
     BigInt<size_of_bigint> ans_bigint;
     PossibleFloat ans(first_float.get_exp_cnt(), second_float.get_mant_cnt());
@@ -215,7 +182,9 @@ PossibleFloat ExpressionHolder::fma(const PossibleFloat first_float,
 
     ans_bigint.format_to_float_with_different_base(
         ans, m_curInpQuery.get_cur_rounding(),
-        first_float.get_exp_bias() + first_float.get_mant_cnt() + 1);
+        (static_cast<std::uint64_t>(
+             -(third_float.get_min_non_denormalized_exp())) +
+         third_float.get_mant_cnt()));
 
     if (ans.check_if_zero() && m_curInpQuery.get_cur_rounding() ==
                                    PossibleRounding::TOWARD_NEG_INFINITY) {
