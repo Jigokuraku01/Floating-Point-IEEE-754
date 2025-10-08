@@ -72,7 +72,8 @@ PossibleFloat ExpressionHolder::plus(const PossibleFloat first_float,
     PossibleFloat first_float_clone = first_float;
     PossibleFloat second_float_clone = second_float;
     std::pair<bool, PossibleFloat> checked_info =
-        plus_checks(first_float_clone, second_float_clone);
+        plus_checks(first_float_clone, second_float_clone,
+                    m_curInpQuery.get_cur_rounding());
     if (checked_info.first) {
         return checked_info.second;
     }

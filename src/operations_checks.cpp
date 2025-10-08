@@ -1,5 +1,6 @@
 #include "expression_holder.hpp"
 #include "i_possible_float_numbers.hpp"
+#include "input_query.hpp"
 #include "my_exception.hpp"
 #include <utility>
 
@@ -109,7 +110,8 @@ ExpressionHolder::fma_checks(const PossibleFloat first_float,
 
 std::pair<bool, PossibleFloat>
 ExpressionHolder::plus_checks(const PossibleFloat first_float,
-                              const PossibleFloat second_float) {
+                              const PossibleFloat second_float,
+                              PossibleRounding cur_rounding) {
     std::pair<bool, PossibleFloat> check_nans_result =
         PossibleFloat::check_if_nans(first_float, second_float);
     if (check_nans_result.first) {
@@ -135,8 +137,7 @@ ExpressionHolder::plus_checks(const PossibleFloat first_float,
         }
     }
     else if (first_float.check_if_zero() && second_float.check_if_zero()) {
-        if (first_float.get_bit_for_sign() == PossibleFloat::neg_sign_code &&
-            second_float.get_bit_for_sign() == PossibleFloat::neg_sign_code) {
+        if (cur_rounding == PossibleRounding::TOWARD_NEG_INFINITY) {
             ans = first_float.create_zero(PossibleFloat::neg_sign_code);
         }
         else {
