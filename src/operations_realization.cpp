@@ -113,9 +113,11 @@ PossibleFloat ExpressionHolder::plus(const PossibleFloat first_float,
     else {
         ans_bigint = first_bigint - second_bigint;
     }
-    ans_bigint.format_to_float(ans, m_curInpQuery.get_cur_rounding());
-    if (ans.check_if_zero() && m_curInpQuery.get_cur_rounding() ==
-                                   PossibleRounding::TOWARD_NEG_INFINITY) {
+    bool has_non_zero_tail =
+        ans_bigint.format_to_float(ans, m_curInpQuery.get_cur_rounding());
+    if (!has_non_zero_tail && ans.check_if_zero() &&
+        m_curInpQuery.get_cur_rounding() ==
+            PossibleRounding::TOWARD_NEG_INFINITY) {
         ans = ans.create_zero(PossibleFloat::neg_sign_code);
     }
     else if (ans.check_if_zero()) {
@@ -186,14 +188,15 @@ PossibleFloat ExpressionHolder::fma(const PossibleFloat first_float,
         ans_bigint = bigger_abs_bigint - smaller_abs_bigint;
     }
 
-    ans_bigint.format_to_float_with_different_base(
+    bool has_non_zero_tail = ans_bigint.format_to_float_with_different_base(
         ans, m_curInpQuery.get_cur_rounding(),
         (static_cast<std::uint64_t>(
              -(third_float.get_min_non_denormalized_exp())) +
          third_float.get_mant_cnt()));
 
-    if (ans.check_if_zero() && m_curInpQuery.get_cur_rounding() ==
-                                   PossibleRounding::TOWARD_NEG_INFINITY) {
+    if (!has_non_zero_tail && ans.check_if_zero() &&
+        m_curInpQuery.get_cur_rounding() ==
+            PossibleRounding::TOWARD_NEG_INFINITY) {
         ans = ans.create_zero(PossibleFloat::neg_sign_code);
     }
     else if (ans.check_if_zero()) {

@@ -107,7 +107,8 @@ class BigInt {
         return ans;
     }
 
-    void format_to_float_with_different_base(PossibleFloat& inp_float,
+    // Возвращает true, если есть ненулевой "хвост"
+    bool format_to_float_with_different_base(PossibleFloat& inp_float,
                                              PossibleRounding cur_rounding,
                                              std::uint64_t extra_base) {
         std::uint64_t index_of_last_one = UINT64_MAX;
@@ -119,7 +120,7 @@ class BigInt {
         if (index_of_last_one == UINT64_MAX) {
             inp_float.set_mant(0);
             inp_float.set_exp(0);
-            return;
+            return false;
         }
         BigInt<N> tmp_fract_slice;
         tmp_fract_slice = get_big_numb(0, extra_base);
@@ -137,7 +138,7 @@ class BigInt {
             if (tmp_fract_slice == BigInt<N>(0)) {
                 inp_float.set_exp(0);
                 inp_float.set_mant(act_numb);
-                return;
+                return false;
             }
             switch (cur_rounding) {
                 case (PossibleRounding::TOWARD_ZERO): {
@@ -178,7 +179,7 @@ class BigInt {
                 inp_float.set_exp(0);
                 inp_float.set_mant(act_numb);
             }
-            return;
+            return true;
         }
         BigInt<N> fract_slice =
             get_big_numb(0, index_of_last_one - inp_float.get_mant_cnt());
@@ -239,16 +240,17 @@ class BigInt {
             if (ans_pair.first) {
                 inp_float = ans_pair.second;
             }
-            return;
+            return fract_slice != BigInt<N>(0);
         }
 
         inp_float.set_exp(act_exp);
         inp_float.set_mant(act_mant);
+        return fract_slice != BigInt<N>(0);
     }
 
-    void format_to_float(PossibleFloat& inp_float,
+    bool format_to_float(PossibleFloat& inp_float,
                          PossibleRounding cur_rounding) {
-        format_to_float_with_different_base(inp_float, cur_rounding, 0);
+        return format_to_float_with_different_base(inp_float, cur_rounding, 0);
     }
 
     BigInt operator<<(std::uint64_t shift) const {
