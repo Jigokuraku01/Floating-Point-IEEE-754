@@ -125,6 +125,11 @@ PossibleFloat ExpressionHolder::plus(const PossibleFloat first_float,
 
 PossibleFloat ExpressionHolder::minus(const PossibleFloat first_float,
                                       const PossibleFloat second_float) {
+    std::pair<bool, PossibleFloat> check_nans_result =
+        PossibleFloat::check_if_nans(first_float, second_float);
+    if (check_nans_result.first) {
+        return check_nans_result.second;
+    }
     PossibleFloat tmp_float = second_float;
     tmp_float.set_bit_sign(tmp_float.get_bit_for_sign() ^ 1);
     return plus(first_float, tmp_float);

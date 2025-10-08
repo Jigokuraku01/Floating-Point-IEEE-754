@@ -123,7 +123,7 @@ ExpressionHolder::plus_checks(const PossibleFloat first_float,
             ans = first_float.create_nan();
         }
         else {
-            ans = first_float.create_inf(sign);
+            ans = first_float.create_inf(first_float.get_bit_for_sign());
         }
     }
     else if (first_float.check_if_inf() || second_float.check_if_inf()) {
