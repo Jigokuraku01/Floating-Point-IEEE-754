@@ -92,6 +92,7 @@ PossibleFloat PossibleFloat::create_nan() const {
     PossibleFloat new_float(get_exp_cnt(), get_mant_cnt());
     new_float.set_exp(get_all_ones_at_inp_bit_cnt(get_exp_cnt()));
     new_float.set_mant(1 << (get_mant_cnt() - 1));
+    new_float.set_bit_sign(PossibleFloat::neg_sign_code);
     return new_float;
 }
 
