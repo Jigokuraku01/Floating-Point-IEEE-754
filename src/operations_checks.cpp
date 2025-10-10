@@ -2,6 +2,7 @@
 #include "i_possible_float_numbers.hpp"
 #include "input_query.hpp"
 #include "my_exception.hpp"
+#include <cstdio>
 #include <utility>
 
 std::pair<bool, PossibleFloat>
@@ -137,11 +138,27 @@ ExpressionHolder::plus_checks(const PossibleFloat first_float,
         }
     }
     else if (first_float.check_if_zero() && second_float.check_if_zero()) {
-        if (cur_rounding == PossibleRounding::TOWARD_NEG_INFINITY) {
-            ans = first_float.create_zero(PossibleFloat::neg_sign_code);
+        if (cur_rounding != PossibleRounding::TOWARD_NEG_INFINITY) {
+            std::uint64_t sign = first_float.get_bit_for_sign() ^
+                                 second_float.get_bit_for_sign();
+            if (sign == 1 ||
+                (sign == 0 && first_float.get_bit_for_sign() == 0)) {
+                ans = first_float.create_zero(PossibleFloat::pos_sign_code);
+            }
+            else {
+                ans = first_float.create_zero(PossibleFloat::neg_sign_code);
+            }
         }
         else {
-            ans = first_float.create_zero(PossibleFloat::pos_sign_code);
+            if (first_float.get_bit_for_sign() ==
+                    PossibleFloat::pos_sign_code &&
+                second_float.get_bit_for_sign() ==
+                    PossibleFloat::pos_sign_code) {
+                ans = first_float.create_zero(PossibleFloat::pos_sign_code);
+            }
+            else {
+                ans = first_float.create_zero(PossibleFloat::neg_sign_code);
+            }
         }
     }
     else if (first_float.check_if_zero() || second_float.check_if_zero()) {
