@@ -9,6 +9,11 @@
 *.o
 *.obj
 
+.vscode/
+.clang-format
+.clang-tidy
+CMakeLists.txt
+
 # Precompiled Headers
 *.gch
 *.pch
